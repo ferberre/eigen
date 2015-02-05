@@ -6,6 +6,7 @@
 @property (nonatomic, strong) UIView *borderView;
 @property (nonatomic, assign) BOOL reducedToPoint;
 @property (nonatomic, assign) CGPoint mapPositioningPoint;
+@property (nonatomic, copy) NSArray *positionConstraints;
 @end
 
 @implementation ARFairMapAnnotationView
@@ -83,12 +84,23 @@ static CGFloat ARHorizontalOffsetFromIcon = 4;
     self.mapPositioningPoint = CGPointMake(dimension, dimension);
 }
 
+// TODO This is called a lot when zooming. Use relative positioning so that position is maintained as zoom level changes?
+//
 - (void)updatePosition
-{    
+{
     CGPoint point = [self.mapView zoomRelativePoint:self.annotation.point];
     point.x -= self.mapPositioningPoint.x;
     point.y -= self.mapPositioningPoint.x;
-    self.frame = CGRectMake(point.x, point.y, self.boundingFrame.size.width, self.boundingFrame.size.height);
+
+    // TODO These constraints are added to the superview, it feels bad to modify these here. What’s the suggested approach?
+    if (self.positionConstraints) {
+      [self.superview removeConstraints:self.positionConstraints];
+    }
+    NSMutableArray *constraints = [NSMutableArray new];
+    // TODO Is leading guaranteed to be appropriate for locale-independent code? (Frame code.)
+    [constraints addObjectsFromArray:[self alignLeadingEdgeWithView:self.superview predicate:[NSString stringWithFormat:@"%f", point.x]]];
+    [constraints addObjectsFromArray:[self alignTopEdgeWithView:self.superview predicate:[NSString stringWithFormat:@"%f", point.y]]];
+    self.positionConstraints = constraints;
 }
 
 - (CGRect)boundingFrame
