@@ -3,15 +3,16 @@
 
 @interface ARFairMapAnnotationCallOutView ()
 
-@property (nonatomic, strong, readonly) UILabel *partnerLocation;
-@property (nonatomic, strong, readonly) UILabel *partnerName;
-@property (nonatomic, strong, readonly) UIImageView *partnerImage;
-@property (nonatomic, strong, readonly) UIImage *defaultPartnerImage;
-@property (nonatomic, strong, readonly) UIImageView *anchorImage;
-@property (nonatomic, strong, readonly) UIImageView *arrowImage;
-@property (nonatomic, strong, readonly) UIView *verticalSeparator;
+@property (nonatomic, strong, readonly)  UILabel *partnerLocation;
+@property (nonatomic, strong, readonly)  UILabel *partnerName;
+@property (nonatomic, strong, readonly)  UIImageView *partnerImage;
+@property (nonatomic, strong, readonly)  UIImage *defaultPartnerImage;
+@property (nonatomic, strong, readonly)  UIImageView *anchorImage;
+@property (nonatomic, strong, readonly)  UIImageView *arrowImage;
+@property (nonatomic, strong, readonly)  UIView *verticalSeparator;
 
 @property (nonatomic, assign) CGPoint position;
+@property (nonatomic, copy) NSArray *positionConstraints;
 
 @property (nonatomic, weak) NAMapView *mapView;
 
@@ -136,12 +137,23 @@
 
 #pragma - Private helpers
 
+// TODO Not called often, nonetheless use relative positioning so that position is maintained as zoom level changes?
+//
 - (void)updatePosition
 {
     CGPoint point = [self.mapView zoomRelativePoint:self.position];
     CGFloat xPos = point.x - (self.frame.size.width / 2.0f);
     CGFloat yPos = point.y - (self.frame.size.height);
-    self.frame = CGRectMake(floor(xPos), yPos, self.frame.size.width, self.frame.size.height);
+
+    // TODO These constraints are added to the superview, it feels bad to modify these here. What’s the suggested approach?
+    if (self.positionConstraints) {
+      [self.superview removeConstraints:self.positionConstraints];
+    }
+    NSMutableArray *constraints = [NSMutableArray new];
+    // TODO Is leading guaranteed to be appropriate for locale-independent code? (Frame code.)
+    [constraints addObjectsFromArray:[self alignLeadingEdgeWithView:self.superview predicate:[NSString stringWithFormat:@"%d", (NSInteger)floor(xPos)]]];
+    [constraints addObjectsFromArray:[self alignTopEdgeWithView:self.superview predicate:[NSString stringWithFormat:@"%d", (NSInteger)yPos]]];
+    self.positionConstraints = constraints;
 }
 
 - (void)tapped:(id)sender
